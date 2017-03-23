@@ -37,7 +37,7 @@ def clean_abstract(text):
 
 def get_project(rcn):
     project_page = requests.get(PROJECT_URL.format(rcn)).text
-    parsed_page = BeautifulSoup(project_page, 'html5lib')
+    parsed_page = BeautifulSoup(project_page)
 
     # Go to https://github.com/pieterheringa/cordis-scraper/blob/master/down.py
     # to see how to extract more attributes
