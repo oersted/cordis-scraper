@@ -2,7 +2,7 @@ import logging
 import re
 from collections import namedtuple
 import requests
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 
 PROJECT_URL = 'http://cordis.europa.eu/project/rcn/{}_en.html'
 
@@ -33,7 +33,7 @@ def clean_currency(text):
     return text.replace('EUR', '').replace(' ', '')
 
 def clean_abstract(text):
-    return text.strip().replace('<p>', '').replace('<p/>', '').replace('<br/>', '\n')
+    return text.strip().replace('<p>', '').replace('</p>', '').replace('<br/>', '\n')
 
 def get_project(rcn):
     project_page = requests.get(PROJECT_URL.format(rcn)).text
