@@ -1,0 +1,59 @@
+import logging
+import re
+from collections import namedtuple
+import requests
+from BeautifulSoup import BeautifulSoup
+
+PROJECT_URL = 'http://cordis.europa.eu/project/rcn/{}_en.html'
+
+def extract_entry(doc, name):
+    try:
+        regex = re.compile('{0}[ ]*:?[ ]*'.format(name), re.IGNORECASE)
+        text = doc.find(text=regex)
+
+        if not text:
+            return ''
+
+        p = text.parent.nextSibling
+        while p is not None and not p.strip():
+            p = p.nextSibling
+
+        if p is None:
+            p = text.parent.text
+
+        return re.sub(regex, '', p).strip(": \t\n|\\/")
+    except:
+        logging.error("FAILED ON ``{1}'': {0}".format(doc, name))
+        raise
+
+def extract_date(text):
+    return re.match(r'\d\d\d\d-\d\d-\d\d', text).group(0)
+
+def clean_currency(text):
+    return text.replace('EUR', '').replace(' ', '')
+
+def clean_abstract(text):
+    return text.strip().replace('<p>', '').replace('<p/>', '').replace('<br/>', '\n')
+
+def get_project(rcn):
+    project_page = requests.get(PROJECT_URL.format(rcn)).text
+    parsed_page = BeautifulSoup(project_page, 'html5lib')
+
+    # Go to https://github.com/pieterheringa/cordis-scraper/blob/master/down.py
+    # to see how to extract more attributes
+
+    record = {}
+
+    dates_section = parsed_page.find(attrs={'class': 'projdates'})
+    if dates_section:
+        record['start_date'] = extract_date(extract_entry(dates_section, 'From'))
+        record['end_date'] = extract_date(extract_entry(dates_section, 'To'))
+
+    details_section = parsed_page.find(attrs={'class': 'projdet'})
+    record['cost'] = clean_currency(extract_entry(details_section, 'Total cost:'))
+    record['funding'] = clean_currency(extract_entry(details_section, 'EU contribution:'))
+
+    abstract_section = parsed_page.find(attrs={'class': 'tech'})
+    record['abstract'] = clean_abstract(abstract_section.decode_contents())
+
+    return record
